@@ -1,12 +1,17 @@
 ---
 title: "Tamanho mínimo de amostra"
+author: "Arquimedes Macedo. Tiago Rodrigues"
 output:
   html_document:
     df_print: paged
+    theme: paper
     toc: true
     toc_float: true
     toc_depth: 2
     code_folding: hide
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding,
+  output_file = file.path(dirname(inputFile), 'index.html')) })
 ---
 
 <script>
@@ -30,6 +35,9 @@ library(ggridges)
 library(reshape2)
 library(gridExtra)
 library(vtable)
+
+knitr::opts_chunk$set(out.height = "\\textheight",  out.width = "\\textwidth",
+                      out.extra = "keepaspectratio=true", fig.align = "center")
 ```
 
 ```{r echo=TRUE}
@@ -182,7 +190,7 @@ Observa-se uma assimetria à direita nos gráficos de `Leads por dia` e `Leads p
 
 __Dúvida__: Que tipo de distribuição poderia ser usada para modelar esses dados? Gamma? Betha? Weibull?
 
-<button class="btn btn-primary" data-toggle="collapse" data-target="#answer-dist">Resposta</button>  
+<button type="button" class="btn btn-primary" data-toggle="collapse" data-target="#answer-dist">Resposta</button>  
 <div id="answer-dist" class="collapse" style="padding-bottom: 16px;">
 <p align="center" width="100%">
 ![](./images/shrug.jpg){width=50%}
