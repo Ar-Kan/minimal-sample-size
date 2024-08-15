@@ -16,6 +16,14 @@ knit: (function(inputFile, encoding) {
 ---
 
 <style>
+body {
+  font-size: 15px;
+}
+
+.table {
+  font-size: 12px;
+}
+
 .meme {
     display: block;
     max-width: 150px;
@@ -365,7 +373,7 @@ computed_sample_size <- ceiling(
 )
 ```
 
-<p style="text-align: center; font-size: 1.4rem;" class="bg-success">
+<p style="text-align: center;" class="bg-success">
 __Ta-dá!__ Para obter uma margem de erro de ``r e`` com ``r confidence*100`%` de confiança, <br/> precisamos de uma amostra de ``r computed_sample_size`` anúncios.
 </p>
 
