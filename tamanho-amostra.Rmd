@@ -10,9 +10,34 @@ output:
     toc_float:
       collapsed: true
     code_folding: hide
-knit: (function(inputFile, encoding) {
-  rmarkdown::render(inputFile, encoding = encoding,
-  output_file = file.path(dirname(inputFile), 'index.html')) })
+  pdf_document:
+      toc: true
+      latex_engine: pdflatex
+      keep_tex: true
+      fig_height: 4
+      fig_width: 4
+header-includes:
+  - \usepackage{ifthen}
+  - \let\oldincludegraphics\includegraphics
+  - \renewcommand{\includegraphics}[2][]{
+      \ifthenelse{ \equal{#1}{} }
+          { \oldincludegraphics[width=2.5cm,height=2.5cm,keepaspectratio=true]{#2} }
+          { \oldincludegraphics[#1]{#2} }
+    }
+knit: (function(input, encoding) {
+    rmarkdown::render(
+      input,
+      encoding = encoding,
+      output_format = 'html_document',
+      output_dir = dirname(input),
+      output_file = 'index.html'
+    );
+    rmarkdown::render(
+      input,
+      encoding = encoding,
+      output_format = 'pdf_document'
+    );
+  })
 ---
 
 <style>
@@ -30,6 +55,10 @@ body {
     max-height: 150px;
     width: auto;
     height: auto;
+}
+
+.bg-danger:not(#dummy) {
+  background-color: #f9bdbb;
 }
 </style>
 
@@ -77,6 +106,18 @@ theme.no_axis <- theme(
   axis.line.x = element_blank(),
   axis.line.y = element_blank()
 )
+
+apply.theme.ts <- function() {
+  list(
+    scale_x_date(date_labels = "%b %d", date_breaks = "1 week"),
+    theme.base + theme.no_legend +
+      theme(
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank()
+      )
+  )
+}
 
 ```
 
@@ -130,13 +171,7 @@ df_leads %>%
   labs(title = "Leads diários",
        x = "Dia",
        y = "Leads") +
-  scale_x_date(date_labels = "%b %d", date_breaks = "1 week") +
-  theme.base + theme.no_legend +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1),
-    panel.grid.major.x = element_blank(),
-    panel.grid.minor.x = element_blank()
-  )
+  apply.theme.ts()
 
 ```
 
@@ -160,13 +195,7 @@ grid.arrange(
     labs(title = "Média de leads por dia",
          x = "Dia",
          y = "Média de leads") +
-    scale_x_date(date_labels = "%b %d", date_breaks = "1 week") +
-    theme.base + theme.no_legend +
-    theme(
-      axis.text.x = element_text(angle = 45, hjust = 1),
-      panel.grid.major.x = element_blank(),
-      panel.grid.minor.x = element_blank()
-    ),
+    apply.theme.ts(),
   df_leads_incorrect_mean %>%
     ggplot(aes(mean)) +
     geom_histogram(bins = 30, color = "royalblue", fill = "royalblue", alpha = 0.5) +
@@ -189,6 +218,7 @@ Será que é só isso mesmo?
 </p>
 
 </div>
+
 
 ### Estimativa da média
 
@@ -239,13 +269,7 @@ grid.arrange(
     labs(title = "Média de leads por dia",
          x = "Dia",
          y = "Média de leads") +
-    scale_x_date(date_labels = "%b %d", date_breaks = "1 week") +
-    theme.base + theme.no_legend +
-    theme(
-      axis.text.x = element_text(angle = 45, hjust = 1),
-      panel.grid.major.x = element_blank(),
-      panel.grid.minor.x = element_blank()
-    ),
+    apply.theme.ts(),
   df_leads_daily %>%
     ggplot(aes(mean)) +
     geom_histogram(bins = 20, color = "royalblue", fill = "royalblue", alpha = 0.5) +
@@ -269,13 +293,12 @@ Mas não está totalmente correto...
 
 </div>
 
-## Resultados
-
 Lembrando que esta é uma aproximação e não corresponde totalmente ao que de fato aconteceu, para computar a verdadeira média, precisariamos da listagem de todos os anúncios ativos no dia.
 
 Nota-se, também, que existem pontos extremos no início e no fim da série, isso pode ser explicado por anúncios que estavam ativos antes do início do período analisado ou que apareceram um pouco antes do fim.
 
 Portanto vamos analisar apenas entre 01/02/2024 e 20/07/2024.
+
 
 ```{r}
 df_leads_complete_filtered <- df_leads_complete %>%
@@ -286,7 +309,15 @@ df_leads_daily_filtered <- df_leads_complete_filtered %>%
   summarise(mean = mean(leads),
             total_leads = sum(leads),
             active_listings = n_distinct(id_anuncio))
+```
 
+
+```{r}
+sumtable(df_leads_complete_filtered, add.median = T, title = "Registros corrigidos")
+```
+
+
+```{r}
 grid.arrange(
   df_leads_daily_filtered %>%
     ggplot(aes(data_criado_em, mean)) +
@@ -294,13 +325,7 @@ grid.arrange(
     labs(title = "Média de leads por dia",
          x = "Dia",
          y = "Média de leads") +
-    scale_x_date(date_labels = "%b %d", date_breaks = "1 week") +
-    theme.base + theme.no_legend +
-    theme(
-      axis.text.x = element_text(angle = 45, hjust = 1),
-      panel.grid.major.x = element_blank(),
-      panel.grid.minor.x = element_blank()
-    ),
+    apply.theme.ts(),
   df_leads_daily_filtered %>%
     ggplot(aes(mean)) +
     coord_cartesian(xlim = c(-0.01, 0.4)) +
@@ -335,9 +360,7 @@ sumtable(df_leads_daily_filtered, add.median = T, title = "Média de leads por d
 ```
 
 
-```{r}
-sumtable(df_leads_complete_filtered, add.median = T, title = "Registros corrigidos")
-```
+## Resultados
 
 Assim, apesar dos pesares, temos uma média de `~`r round(leads_mean, 2)`` leads por dia, com um desvio padrão de `~`r round(leads_sd, 3)``.
 
@@ -346,9 +369,10 @@ Assim, apesar dos pesares, temos uma média de `~`r round(leads_mean, 2)`` leads
 Calculamos que o tamanho da amostra, a partir da equação
 
 $$
-n' \ge \left(Z_{\alpha / 2} \frac{\sigma}{\text{e}}\right)^2
-\\
-n = n' \cdot \frac{N-n}{N-1}
+\begin{aligned}
+n' &\ge \left(Z_{\alpha / 2} \frac{\sigma}{\text{e}}\right)^2 \\
+n  &= n' \cdot \frac{N-n}{N-1}
+\end{aligned}
 $$
 
 onde,
