@@ -125,6 +125,8 @@ apply.theme.ts <- function() {
 
 Estimar a quantidade média de leads diários, com 80% de confiança, por anunciante, de anúncios de vendas de imóveis na cidade de Florianópolis (SC).
 
+Com um erro máximo de 0.05, usando Amostragem Aleatório Simples sem Reposição (AASs).
+
 *Lead*: é um contato de um cliente em potencial que demonstrou interesse em um produto ou serviço.
 
 IC de 80% foi escolhido devido à falta de informações (descrita logo mais), e também por ser este o valor máximo recomendado pela ABNT para avaliações de imóveis (NBR 14653).
@@ -214,15 +216,16 @@ Será que é só isso mesmo?
 </p>
 
 <p align="center" width="100%">
-![](./images/loading-brain.jpg){.meme}
+![](./images/flork-pensando.jpg){.meme}
 </p>
 
 </div>
 
+Claro que não! A média diária de leads por anúncio é uma estimativa incorreta, pois não considera a quantidade de anúncios ativos em cada dia, e acaba gerando um viés.
 
 ### Estimativa da média
 
-Claro que não! A média diária de leads por anúncio é uma estimativa incorreta, pois não considera a quantidade de anúncios ativos em cada dia, e acaba gerando um viés. Para corrigir isso, vamos completar os dados com zeros para os dias sem leads.
+Para corrigir o problema anterior, vamos completar os dados com zeros para os dias sem leads.
 
 Isto é, vamos pegar o primeiro e o último dia que o anúncio teve leads, e criar novos registros entre estas datas, para dias sem lead.
 
@@ -288,7 +291,7 @@ Mas não está totalmente correto...
 </p>
 
 <p align="center" width="100%">
-![](./images/exercer-a-calma.jpg){.meme}
+![](./images/flork-exercer-a-calma.jpg){.meme}
 </p>
 
 </div>
@@ -353,8 +356,12 @@ grid.arrange(
 ```
 
 ```{r}
-leads_mean <- mean(df_leads_complete_filtered$leads)
-leads_sd <- sd(df_leads_complete_filtered$leads)
+leads_daily_mean <- mean(df_leads_complete_filtered$leads)
+leads_daily_sd <- sd(df_leads_complete_filtered$leads)
+
+leads_mean_of_means <- mean(df_leads_daily_filtered$mean)
+leads_sd_of_means <- sd(df_leads_daily_filtered$mean)
+mean_active_listings <- ceiling(mean(df_leads_daily_filtered$active_listings))
 
 sumtable(df_leads_daily_filtered, add.median = T, title = "Média de leads por dia")
 ```
@@ -362,7 +369,7 @@ sumtable(df_leads_daily_filtered, add.median = T, title = "Média de leads por d
 
 ## Resultados
 
-Assim, apesar dos pesares, temos uma média de `~`r round(leads_mean, 2)`` leads por dia, com um desvio padrão de `~`r round(leads_sd, 3)``.
+Assim, apesar dos pesares, temos uma média de `~`r round(leads_daily_mean, 3)`` leads por dia, com um desvio padrão de `~`r round(leads_daily_sd, 3)``. Além disso, a média das médias diárias é de `~`r round(leads_mean_of_means, 3)`` com um desvio padrão de `~`r round(leads_sd_of_means, 3)``.
 
 ### Tamanho da amostra
 
@@ -381,14 +388,14 @@ $\text{e}$ é a margem de erro,
 $\sigma$ é o desvio padrão,
 $N$ é o tamanho da população,
 $n'$ é o tamanho da amostra com amostra aleatória simples com reposição (AASc), e,
-$n$ é o tamanho da amostra sem reposição.
+$n$ é o tamanho da amostra sem reposição (AASs).
 
 ```{r}
 confidence <- 0.8
 z <- abs(qnorm((1 - confidence) / 2))
-e <- 0.1
-sigma <- leads_sd
-size_population <- nrow(df_leads_complete_filtered)
+e <- 0.05
+sigma <- leads_sd_of_means
+size_population <- mean_active_listings
 
 computed_sample_size_aasc <- (z * sigma / e)^2
 computed_sample_size <- ceiling(
@@ -397,72 +404,43 @@ computed_sample_size <- ceiling(
 )
 ```
 
+Lembrando que queremos estimar a média de leads diários, portanto, vamos usar a média das médias diárias.
+
 <p style="text-align: center;" class="bg-success">
-__Ta-dá!__ Para obter uma margem de erro de ``r e`` com ``r confidence*100`%` de confiança, <br/> precisamos de uma amostra de ``r computed_sample_size`` anúncios.
+__Ta-dá!__ Para obter uma margem de erro de ``r e`` com ``r confidence*100`%` de confiança, utilizando AASs, <br/> precisamos de uma amostra de ``r computed_sample_size`` anúncios.
 </p>
 
 
 <div>
 <p align="center" width="100%">
-![](./images/proud.png){.meme}
+![](./images/flork-orgulhoso.png){.meme}
 </p>
 </div>
 
-### Cálculo amostral
+### Análise do erro
 
-#### Tamanho da amostra: n_calculado
+Vamos analisar o erro da média de leads diários, a partir do tamanho da amostra calculado.
 
 ```{r}
-nivel_conf <- 0.80
-z <- qnorm(1 - (1 - nivel_conf) / 2)
+set.seed(42)
 
-n_calculado <- ceiling(z^2 * (var(df_leads_daily_filtered$mean)/0.05^2))
-print(paste("n calculado:", n_calculado))
+sample_size <- computed_sample_size
+
+# get 20 samples for each day in `df_leads_complete_filtered`
+# then get the min, max, and mean of each day
+df_leads_daily_sampled <- df_leads_complete_filtered %>%
+  group_by(data_criado_em) %>%
+  do({
+    sample_data <- sample_n(., sample_size, replace = F)
+    sample_data %>%
+      summarise(min = min(leads),
+                max = max(leads),
+                mean = mean(leads))
+  })
+
+sumtable(df_leads_daily_sampled, add.median = T, title = "Média de leads por dia (amostra)")
 ```
 
-
-#### Margem de erro calculada: margem_erro
-```{r}
-margem_erro <- z * (sd(df_leads_daily_filtered$mean) / sqrt(n_calculado))
-print(paste("margem de erro:", margem_erro))
-```
-
-
-#### Geração de 1000 amostras aleatórias das médias diárias: values_mean_amostral
-```{r}
-num_amostras <- 1000
-
-set.seed(2024)  # Definida uma semente
-values_mean_amostral <- replicate(num_amostras, {
-  amostra <- sample(df_leads_daily_filtered$mean, n_calculado, replace = FALSE)
-  mean(amostra)
-})
-print(values_mean_amostral)
-```
-
-
-#### Média amostral das 1000 amostras obtidas: mean_amostral
-```{r}
-# Média das 1000 amostras geradas de tamanho n_calculado para estimar a média populacional
-
-mean_amostral <- mean(values_mean_amostral)
-print(paste("Média amostral:", mean_amostral))
-```
-
-#### Cálculo do erro das médias amostrais obtidas: erro
-```{r}
-# Calculando o maior e o menor valor das médias amostrais
-highest_media <- max(values_mean_amostral)
-lowest_media <- min(values_mean_amostral)
-
-# Calculando o erro (diferença entre o maior e o menor valor)
-erro <- highest_media - lowest_media
-
-# Exibindo os resultados
-print(paste("Maior média amostral:", highest_media))
-print(paste("Menor média amostral:", lowest_media))
-print(paste("Erro (diferença entre maior e menor média):", erro))
-```
 
 ## Sugestão de tamanho da amostra
 

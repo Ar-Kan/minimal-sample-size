@@ -197,6 +197,9 @@ Estimar a quantidade média de leads diários, com 80\% de confiança, por
 anunciante, de anúncios de vendas de imóveis na cidade de Florianópolis
 (SC).
 
+Com um erro máximo de 0.05, usando Amostragem Aleatório Simples sem
+Reposição (AASs).
+
 \emph{Lead}: é um contato de um cliente em potencial que demonstrou
 interesse em um produto ou serviço.
 
@@ -330,14 +333,16 @@ Para isso, dividimos o número total de leads pelo número de anúncios
 
 Será que é só isso mesmo?
 
-\includegraphics{./images/loading-brain.jpg}
-
-\subsubsection{Estimativa da média}\label{estimativa-da-muxe9dia}
+\includegraphics{./images/flork-pensando.jpg}
 
 Claro que não! A média diária de leads por anúncio é uma estimativa
 incorreta, pois não considera a quantidade de anúncios ativos em cada
-dia, e acaba gerando um viés. Para corrigir isso, vamos completar os
-dados com zeros para os dias sem leads.
+dia, e acaba gerando um viés.
+
+\subsubsection{Estimativa da média}\label{estimativa-da-muxe9dia}
+
+Para corrigir o problema anterior, vamos completar os dados com zeros
+para os dias sem leads.
 
 Isto é, vamos pegar o primeiro e o último dia que o anúncio teve leads,
 e criar novos registros entre estas datas, para dias sem lead.
@@ -420,7 +425,7 @@ A partir desta correção, temos as seguintes médias diárias.
 
 Mas não está totalmente correto\ldots{}
 
-\includegraphics{./images/exercer-a-calma.jpg}
+\includegraphics{./images/flork-exercer-a-calma.jpg}
 
 Lembrando que esta é uma aproximação e não corresponde totalmente ao que
 de fato aconteceu, para computar a verdadeira média, precisariamos da
@@ -505,8 +510,12 @@ leads & 11253 & 0.12 & 0.34 & 0 & 0 & 0 & 0 & 4\\
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\NormalTok{leads\_mean }\OtherTok{\textless{}{-}} \FunctionTok{mean}\NormalTok{(df\_leads\_complete\_filtered}\SpecialCharTok{$}\NormalTok{leads)}
-\NormalTok{leads\_sd }\OtherTok{\textless{}{-}} \FunctionTok{sd}\NormalTok{(df\_leads\_complete\_filtered}\SpecialCharTok{$}\NormalTok{leads)}
+\NormalTok{leads\_daily\_mean }\OtherTok{\textless{}{-}} \FunctionTok{mean}\NormalTok{(df\_leads\_complete\_filtered}\SpecialCharTok{$}\NormalTok{leads)}
+\NormalTok{leads\_daily\_sd }\OtherTok{\textless{}{-}} \FunctionTok{sd}\NormalTok{(df\_leads\_complete\_filtered}\SpecialCharTok{$}\NormalTok{leads)}
+
+\NormalTok{leads\_mean\_of\_means }\OtherTok{\textless{}{-}} \FunctionTok{mean}\NormalTok{(df\_leads\_daily\_filtered}\SpecialCharTok{$}\NormalTok{mean)}
+\NormalTok{leads\_sd\_of\_means }\OtherTok{\textless{}{-}} \FunctionTok{sd}\NormalTok{(df\_leads\_daily\_filtered}\SpecialCharTok{$}\NormalTok{mean)}
+\NormalTok{mean\_active\_listings }\OtherTok{\textless{}{-}} \FunctionTok{ceiling}\NormalTok{(}\FunctionTok{mean}\NormalTok{(df\_leads\_daily\_filtered}\SpecialCharTok{$}\NormalTok{active\_listings))}
 
 \FunctionTok{sumtable}\NormalTok{(df\_leads\_daily\_filtered, }\AttributeTok{add.median =}\NormalTok{ T, }\AttributeTok{title =} \StringTok{"Média de leads por dia"}\NormalTok{)}
 \end{Highlighting}
@@ -530,8 +539,10 @@ active\_listings & 171 & 66 & 14 & 25 & 58 & 71 & 76 & 93\\
 \subsection{Resultados}\label{resultados}
 
 Assim, apesar dos pesares, temos uma média de
-\texttt{\textasciitilde{}0.12} leads por dia, com um desvio padrão de
-\texttt{\textasciitilde{}0.337}.
+\texttt{\textasciitilde{}0.118} leads por dia, com um desvio padrão de
+\texttt{\textasciitilde{}0.337}. Além disso, a média das médias diárias
+é de \texttt{\textasciitilde{}0.118} com um desvio padrão de
+\texttt{\textasciitilde{}0.069}.
 
 \subsubsection{Tamanho da amostra}\label{tamanho-da-amostra}
 
@@ -548,15 +559,15 @@ onde, \(Z_{\alpha / 2}\) é o valor crítico da distribuição normal,
 \(\text{e}\) é a margem de erro, \(\sigma\) é o desvio padrão, \(N\) é o
 tamanho da população, \(n'\) é o tamanho da amostra com amostra
 aleatória simples com reposição (AASc), e, \(n\) é o tamanho da amostra
-sem reposição.
+sem reposição (AASs).
 
 \begin{Shaded}
 \begin{Highlighting}[]
 \NormalTok{confidence }\OtherTok{\textless{}{-}} \FloatTok{0.8}
 \NormalTok{z }\OtherTok{\textless{}{-}} \FunctionTok{abs}\NormalTok{(}\FunctionTok{qnorm}\NormalTok{((}\DecValTok{1} \SpecialCharTok{{-}}\NormalTok{ confidence) }\SpecialCharTok{/} \DecValTok{2}\NormalTok{))}
-\NormalTok{e }\OtherTok{\textless{}{-}} \FloatTok{0.1}
-\NormalTok{sigma }\OtherTok{\textless{}{-}}\NormalTok{ leads\_sd}
-\NormalTok{size\_population }\OtherTok{\textless{}{-}} \FunctionTok{nrow}\NormalTok{(df\_leads\_complete\_filtered)}
+\NormalTok{e }\OtherTok{\textless{}{-}} \FloatTok{0.05}
+\NormalTok{sigma }\OtherTok{\textless{}{-}}\NormalTok{ leads\_sd\_of\_means}
+\NormalTok{size\_population }\OtherTok{\textless{}{-}}\NormalTok{ mean\_active\_listings}
 
 \NormalTok{computed\_sample\_size\_aasc }\OtherTok{\textless{}{-}}\NormalTok{ (z }\SpecialCharTok{*}\NormalTok{ sigma }\SpecialCharTok{/}\NormalTok{ e)}\SpecialCharTok{\^{}}\DecValTok{2}
 \NormalTok{computed\_sample\_size }\OtherTok{\textless{}{-}} \FunctionTok{ceiling}\NormalTok{(}
@@ -566,11 +577,14 @@ sem reposição.
 \end{Highlighting}
 \end{Shaded}
 
-\textbf{Ta-dá!} Para obter uma margem de erro de \texttt{0.1} com
-\texttt{80\%} de confiança, precisamos de uma amostra de \texttt{19}
-anúncios.
+Lembrando que queremos estimar a média de leads diários, portanto, vamos
+usar a média das médias diárias.
 
-\includegraphics{./images/proud.png}
+\textbf{Ta-dá!} Para obter uma margem de erro de \texttt{0.05} com
+\texttt{80\%} de confiança, utilizando AASs, precisamos de uma amostra
+de \texttt{4} anúncios.
+
+\includegraphics{./images/flork-orgulhoso.png}
 
 \subsubsection{Cálculo amostral}\label{cuxe1lculo-amostral}
 
