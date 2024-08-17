@@ -92,11 +92,11 @@ body {
         <div class="modal-dialog modal-dialog-centered">
           <div class="modal-content">
             <div class="modal-body">
-            	<button type="button" class="close" data-dismiss="modal">
-            	  <span aria-hidden="true">&times;</span>
-            	  <span class="sr-only">Close</span>
-          	  </button>
-            	<div class="chart-image-preview-wrapper">
+                <button type="button" class="close" data-dismiss="modal">
+                  <span aria-hidden="true">&times;</span>
+                  <span class="sr-only">Close</span>
+              </button>
+                <div class="chart-image-preview-wrapper">
                 <img src="" class="chart-image-preview" keepaspectratio="true">
               </div>
             </div>
@@ -128,7 +128,7 @@ library(tidyr)
 library(readxl)
 library(knitr)
 library(ggplot2)
-library(ggridges)
+library(ggh4x)
 library(reshape2)
 library(gridExtra)
 library(vtable)
@@ -142,12 +142,14 @@ knitr::opts_chunk$set(
 )
 ```
 
+
 ```{r echo=TRUE}
 theme.base <- theme_minimal(base_size = 11) +
   theme(
     axis.text = element_text(size = 8),
     plot.title = element_text(hjust = 0.5, size = 10, face = "bold"),
-    axis.title = element_text(size = 10),
+    axis.title = element_text(size = 8),
+    legend.title = element_text(size = 8),
     panel.grid.major = element_line(colour = "grey90", linewidth = 0.5),
     panel.grid.minor = element_line(colour = adjustcolor("grey90", alpha.f = 0.5), linewidth = 0.25),
     panel.border = element_blank(),
@@ -199,15 +201,29 @@ Estimar a quantidade média de leads diários, com 80% de confiança, por anunci
 
 Com um erro máximo de 0.05, usando Amostragem Aleatório Simples sem Reposição (AASs).
 
-*Lead*: é um contato de um cliente em potencial que demonstrou interesse em um produto ou serviço.
+*Lead:* é um contato de um cliente em potencial que demonstrou interesse em um produto ou serviço.
 
 IC de 80% foi escolhido devido à falta de informações (descrita logo mais), e também por ser este o valor máximo recomendado pela ABNT para avaliações de imóveis (NBR 14653).
 
 ## Metodologia
 
-Almeja-se, a partir de uma lista de anúncios, realizar uma busca diária de leads, usando uma amostra dos anúncios, e, a partir destes dados, estimar a quantidade média de leads.
+Almeja-se, a partir de uma lista de anúncios, realizar uma busca diária de anúncios, e, a partir destes dados, estimar a quantidade média de leads.
 
-No entanto, entende-se que há limitações nas informações disponíveis, como:
+Portanto:
+
+- **População alvo:** anúncios ativos em um dado dia, na cidade de Florianópolis (SC).
+- **População de pesquisa:** anúncios ativos da cidade de Florianópolis (SC) entre Janeiro e Julho de 2024.
+- **Unidade elementar:** anúncio de venda de imóvel ativo no dia em questão.
+- **Característica de interesse:** média diária de leads por anúncio.
+- **Estimador:** média amostral.
+- **Intervalo de confiança:** 80%.
+- **Erro máximo:** 0.05.
+- **Método de amostragem:** Amostragem Aleatória Simples sem Reposição (AASs) dos anúncios ativos no dia.
+- **Software:** R.
+- **Ferramentas:** pacotes do R.
+- **Repositório:** [GitHub](https://github.com/Ar-Kan/minimal-sample-size)
+
+Antes de mais nada, contudo, entende-se que há limitações nas informações disponíveis, como:
 
 -   O número de leads por anúncio.
 -   Tempo total que o anúncio ficou ativo.
@@ -363,11 +379,11 @@ Mas não está totalmente correto...
 </p>
 </div>
 
-Lembrando que esta é uma aproximação e não corresponde totalmente ao que de fato aconteceu, para computar a verdadeira média, precisariamos da listagem de todos os anúncios ativos no dia.
+Lembrando que esta é uma aproximação e não corresponde totalmente ao que de fato aconteceu, para computar a verdadeira média, precisaríamos da listagem de todos os anúncios ativos no dia.
 
 Nota-se, também, que existem pontos extremos no início e no fim da série, isso pode ser explicado por anúncios que estavam ativos antes do início do período analisado ou que apareceram um pouco antes do fim.
 
-Portanto vamos analisar apenas entre 01/02/2024 e 20/07/2024.
+Portanto, vamos analisar apenas entre 01/02/2024 e 20/07/2024.
 
 
 ```{r}
@@ -457,6 +473,17 @@ $N$ é o tamanho da população,
 $n'$ é o tamanho da amostra com amostra aleatória simples com reposição (AASc), e,
 $n$ é o tamanho da amostra sem reposição (AASs).
 
+
+Lembrando que queremos estimar a média de leads diários a partir de uma amostra de anúncios.
+
+Mas qual parâmetro devemos usar para o desvio padrão? O desvio padrão dos leads diários ou o desvio padrão das médias diárias?
+
+- **Desvio padrão dos leads diários**: indica o quanto os leads variam de um dia para o outro.
+- **Desvio padrão das médias diárias**: indica o quanto as médias diárias variam de um dia para o outro.
+
+O nosso objetivo é amostrar anúncios ativos no dia, e não todos, desta forma, escolhemos o desvio padrão das médias diárias.
+
+
 ```{r}
 confidence <- 0.8
 z_quartil <- abs(qnorm((1 - confidence) / 2))
@@ -471,10 +498,9 @@ computed_sample_size <- ceiling(
 )
 ```
 
-Lembrando que queremos estimar a média de leads diários, portanto, vamos usar a média das médias diárias.
 
 <p style="text-align: center;" class="bg-success">
-__Ta-dá!__ Para obter uma margem de erro de ``r max_error`` com ``r confidence*100`%` de confiança, utilizando AASs, <br/> precisamos de uma amostra de ``r computed_sample_size`` anúncios.
+__Ta-dá!__ Para obter uma margem de erro de ``r max_error`` com ``r confidence*100`%` de confiança, utilizando AASs, <br/> precisamos de uma amostra de ``r computed_sample_size`` anúncios por dia.
 </p>
 
 
@@ -528,7 +554,7 @@ sumtable(df_leads_daily_error %>%
 
 Olhando a tabela acima, vemos que, com uma amostra de ``r computed_sample_size`` anúncios, a média das médias amostrais de leads diários é de ``r round(sample_mean_means, 2)`` leads, com um erro médio de ``r round(sample_mean_errors, 3)`` leads.
 
-Ou seja, o valor é bem próximo da média real, no entanto, o erro médio é bem maior ``r max_error``.
+Ou seja, o valor é bem próximo da média real, no entanto, o erro médio é bem maior que ``r max_error``.
 
 
 <div class="meme-block">
@@ -578,27 +604,33 @@ grid.arrange(
 )
 ```
 
-Apesar de parecer correto quando analizamos o todo, o gráfico nos mostra que estamos errando além do esperado a maior parte das vezes. Isso indica que a amostra não é suficiente para garantir a precisão desejada.
+Apesar de parecer "correto" quando analisamos o todo, o gráfico nos mostra que estamos errando além do esperado a maioria das vezes. Isso indica que a amostra não é suficiente para garantir a precisão desejada.
 
-```{r warning=FALSE, , fig.height = 4}
+```{r warning=FALSE, fig.height = 4, fig.width = 12}
 df_leads_daily_error %>%
   ggplot(aes(data_criado_em)) +
-  geom_line(aes(y = mean_mean, size = "Estimado"), color = "blue", alpha = 0.8, linewidth = 0.8) +
-  geom_line(aes(y = lead_mean, size = "Real"), color = "red", linetype = "dashed", linewidth = 0.8, alpha = 0.5) +
+  stat_difference(aes(ymin = lead_mean, ymax = mean_mean)) +
+  scale_fill_discrete(name = "Diferença entre estimado e real") +
+  geom_line(aes(y = mean_mean), alpha = 0.5, linewidth = 0.5) +
+  geom_line(aes(y = lead_mean), alpha = 0.5, linewidth = 0.5) +
   labs(title = "Média de leads diários",
        x = "Dia",
-       y = "Leads",
-       size = "") +
-  apply.theme.ts.legend()
+       y = "Leads") +
+  apply.theme.ts.legend() +
+  theme(legend.position = "bottom",
+        axis.text = element_text(size = 10),
+        plot.title = element_text(size = 12),
+        axis.title = element_text(size = 10),
+        legend.title = element_text(size = 10))
 ```
 
 
-Mas então, o que pode ter dado errado?
+Mas, o que pode ter dado errado então?
 
 ### Causas do erro
 
 - **Variabilidade dos dados**: para calcular o tamanho da amostra utilizamos a média de todas as médias diárias, desta forma, perdemos a informação de que há dias com alta variabilidade.
-- **Independência**: outro fator que influencia nesse erro é a falta de independência entre os dados. Isto é, os dados utilizados formam uma série temporal, o que faz com que qualquer estatística utilizada seja dependente do tempo. Isso torna incorreta a técnica de estimação do tamanho da amostra, pois tem como premissa a independência dos dados.
+- **Independência**: outro fator que exerce influência sobre esse erro é a falta de independência entre os dados. Isto é, os dados utilizados formam uma série temporal, o que faz com que qualquer estatística utilizada seja dependente do tempo. Isso torna incorreta a técnica de estimação do tamanho da amostra, pois tem como premissa a independência dos dados.
 
 
 ## Sugestão de tamanho da amostra
