@@ -66,8 +66,61 @@ body {
 .bg-danger:not(#dummy) {
   background-color: #f9bdbb;
 }
+
+#chart-zoom-modal .modal-dialog {
+  width: auto;
+  margin: 10px;
+}
+
+#chart-zoom-modal .chart-image-preview-wrapper {
+  display: flex;
+  justify-content: center;
+}
+
+#chart-zoom-modal .chart-image-preview {
+  width: auto;
+  height: 100%;
+  max-height: 90vh;
+}
 </style>
 
+<script type="text/javascript">
+  $(document).ready(function() {
+    $('body').prepend(
+      <!-- Modal component -->
+      `<div class="modal fade" id="chart-zoom-modal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-body">
+            	<button type="button" class="close" data-dismiss="modal">
+            	  <span aria-hidden="true">&times;</span>
+            	  <span class="sr-only">Close</span>
+          	  </button>
+            	<div class="chart-image-preview-wrapper">
+                <img src="" class="chart-image-preview" keepaspectratio="true">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>`
+    );
+    <!-- Add zoom button on top right of each chart -->
+    $('p>img.chart-image').each(function() {
+      $(this).wrap('<div class="chart-image-wrapper" style="position: relative;"></div>');
+      $(this).parent().append(
+        `<button type="button" class="btn btn-default btn-sm chart-zoom-button" style="position: absolute; top: 0; right: 0;">
+          <span class="glyphicon glyphicon-zoom-in"></span>
+        </button>`
+      );
+    });
+    <!-- Click event  -->
+    $('button.chart-zoom-button').on('click', function() {
+      var chartImage = $(this).siblings('img.chart-image');
+      $('#chart-zoom-modal .chart-image-preview').attr('src', chartImage.attr('src'));
+      $('#chart-zoom-modal').modal('show');
+    });
+  });
+</script>
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
 library(dplyr)
@@ -81,9 +134,12 @@ library(gridExtra)
 library(vtable)
 library(purrr)
 
-# Centering figures chunk output
-knitr::opts_chunk$set(out.height = "\\textheight",  out.width = "\\textwidth",
-                      out.extra = "keepaspectratio=true", fig.align = "center")
+knitr::opts_chunk$set(
+  out.height = "\\textheight",
+  out.width = "\\textwidth",
+  out.extra = 'keepaspectratio=true class="chart-image"',
+  fig.align = "center"
+)
 ```
 
 ```{r echo=TRUE}
