@@ -32,11 +32,13 @@ knit: (function(input, encoding) {
       output_dir = dirname(input),
       output_file = 'index.html'
     );
-    rmarkdown::render(
-      input,
-      encoding = encoding,
-      output_format = 'pdf_document'
-    );
+    if (FALSE) {
+      rmarkdown::render(
+        input,
+        encoding = encoding,
+        output_format = 'pdf_document'
+      );
+    }
   })
 ---
 
@@ -55,6 +57,10 @@ body {
     max-height: 150px;
     width: auto;
     height: auto;
+}
+
+.meme-block {
+    padding-top: 12px;
 }
 
 .bg-danger:not(#dummy) {
@@ -84,7 +90,7 @@ knitr::opts_chunk$set(out.height = "\\textheight",  out.width = "\\textwidth",
 theme.base <- theme_minimal(base_size = 11) +
   theme(
     axis.text = element_text(size = 8),
-    plot.title = element_text(hjust = 0.5, size = 12),
+    plot.title = element_text(hjust = 0.5, size = 10, face = "bold"),
     axis.title = element_text(size = 10),
     panel.grid.major = element_line(colour = "grey90", linewidth = 0.5),
     panel.grid.minor = element_line(colour = adjustcolor("grey90", alpha.f = 0.5), linewidth = 0.25),
@@ -107,15 +113,25 @@ theme.no_axis <- theme(
   axis.line.y = element_blank()
 )
 
-apply.theme.ts <- function() {
+# Theme for timeseries with legend
+apply.theme.ts.legend <- function() {
   list(
     scale_x_date(date_labels = "%b %d", date_breaks = "1 week"),
-    theme.base + theme.no_legend +
+    theme.base +
       theme(
         axis.text.x = element_text(angle = 45, hjust = 1),
         panel.grid.major.x = element_blank(),
         panel.grid.minor.x = element_blank()
       )
+  )
+}
+
+
+# Theme for timeseries
+apply.theme.ts <- function() {
+  list(
+    apply.theme.ts.legend(),
+    theme.no_legend
   )
 }
 
@@ -164,7 +180,7 @@ kable(head(df_leads))
 
 #### Leads diários
 
-```{r echo=TRUE}
+```{r echo=TRUE, fig.height = 3}
 df_leads %>%
   group_by(data_criado_em) %>%
   summarise(leads = n()) %>%
@@ -174,7 +190,6 @@ df_leads %>%
        x = "Dia",
        y = "Leads") +
   apply.theme.ts()
-
 ```
 
 Notam-se picos em intervalos semi-regulares, o que pode indicar sazonalidade ou eventos específicos. Além disso, em Julho, houve uma alta variabilidade nos leads diários.
@@ -185,7 +200,7 @@ Vamos analisar a média diária de leads por anúncio.
 
 Para isso, dividimos o número total de leads pelo número de anúncios únicos para cada dia.
 
-```{r class.source="bg-danger"}
+```{r class.source="bg-danger", fig.height = 4}
 df_leads_incorrect_mean <- df_leads %>%
   group_by(data_criado_em) %>%
   summarise(mean = n()/length(unique(id_anuncio)))
@@ -209,8 +224,7 @@ grid.arrange(
 )
 ```
 
-<div>
-
+<div class="meme-block">
 <p style="text-align: center; font-size: 15px; font-weight: bold;">
 Será que é só isso mesmo?
 </p>
@@ -218,7 +232,6 @@ Será que é só isso mesmo?
 <p align="center" width="100%">
 ![](./images/flork-pensando.jpg){.meme}
 </p>
-
 </div>
 
 Claro que não! A média diária de leads por anúncio é uma estimativa incorreta, pois não considera a quantidade de anúncios ativos em cada dia, e acaba gerando um viés.
@@ -258,7 +271,7 @@ kable(head(df_leads_complete))
 
 A partir desta correção, temos as seguintes médias diárias.
 
-```{r}
+```{r fig.height = 4}
 df_leads_daily <- df_leads_complete %>%
   group_by(data_criado_em) %>%
   summarise(mean = mean(leads),
@@ -284,8 +297,7 @@ grid.arrange(
 )
 ```
 
-<div>
-
+<div class="meme-block">
 <p style="text-align: center; font-size: 15px; font-weight: bold;">
 Mas não está totalmente correto...
 </p>
@@ -293,7 +305,6 @@ Mas não está totalmente correto...
 <p align="center" width="100%">
 ![](./images/flork-exercer-a-calma.jpg){.meme}
 </p>
-
 </div>
 
 Lembrando que esta é uma aproximação e não corresponde totalmente ao que de fato aconteceu, para computar a verdadeira média, precisariamos da listagem de todos os anúncios ativos no dia.
@@ -392,12 +403,12 @@ $n$ é o tamanho da amostra sem reposição (AASs).
 
 ```{r}
 confidence <- 0.8
-z <- abs(qnorm((1 - confidence) / 2))
-e <- 0.05
+z_quartil <- abs(qnorm((1 - confidence) / 2))
+max_error <- 0.05
 sigma <- leads_sd_of_means
 size_population <- mean_active_listings
 
-computed_sample_size_aasc <- (z * sigma / e)^2
+computed_sample_size_aasc <- (z_quartil * sigma / max_error)^2
 computed_sample_size <- ceiling(
   computed_sample_size_aasc *
     (size_population - computed_sample_size_aasc) / (size_population - 1)
@@ -407,7 +418,7 @@ computed_sample_size <- ceiling(
 Lembrando que queremos estimar a média de leads diários, portanto, vamos usar a média das médias diárias.
 
 <p style="text-align: center;" class="bg-success">
-__Ta-dá!__ Para obter uma margem de erro de ``r e`` com ``r confidence*100`%` de confiança, utilizando AASs, <br/> precisamos de uma amostra de ``r computed_sample_size`` anúncios.
+__Ta-dá!__ Para obter uma margem de erro de ``r max_error`` com ``r confidence*100`%` de confiança, utilizando AASs, <br/> precisamos de uma amostra de ``r computed_sample_size`` anúncios.
 </p>
 
 
@@ -421,27 +432,125 @@ __Ta-dá!__ Para obter uma margem de erro de ``r e`` com ``r confidence*100`%` d
 
 Vamos analisar o erro da média de leads diários, a partir do tamanho da amostra calculado.
 
+
 ```{r}
-set.seed(42)
+sample_repetitions <- 20
 
-sample_size <- computed_sample_size
-
-# get 20 samples for each day in `df_leads_complete_filtered`
-# then get the min, max, and mean of each day
-df_leads_daily_sampled <- df_leads_complete_filtered %>%
+df_leads_daily_error <- df_leads_complete_filtered %>%
   group_by(data_criado_em) %>%
-  do({
-    sample_data <- sample_n(., sample_size, replace = F)
-    sample_data %>%
-      summarise(min = min(leads),
-                max = max(leads),
-                mean = mean(leads))
-  })
+  summarise(lead_mean = mean(leads),
+            leads = list(leads),
+            active_listings = n_distinct(id_anuncio)) %>%
+  rowwise() %>%
+  mutate(
+    samples = list(replicate(sample_repetitions, sample(leads, computed_sample_size, replace = F), simplify = F)),
+    samples_mean = list(map_dbl(samples, mean)),
+    samples_error = list(map_dbl(samples_mean, ~ abs(.x - lead_mean))),
+    min_mean = min(samples_mean),
+    max_mean = max(samples_mean),
+    mean_mean = mean(samples_mean),
+    min_error = min(samples_error),
+    max_error = max(samples_error),
+    mean_error = mean(samples_error)
+  ) %>%
+  select(-samples, -samples_mean, -samples_error, -leads)
 
-sumtable(df_leads_daily_sampled, add.median = T, title = "Média de leads por dia (amostra)")
+sample_mean_means <- mean(df_leads_daily_error$mean_mean)
+sample_mean_errors <- mean(df_leads_daily_error$mean_error)
+
+colnames_lookup <- c(
+  "Média real" = "lead_mean",
+  "Média das médias amostrais" = "mean_mean",
+  "Erro médio" = "mean_error"
+)
+sumtable(df_leads_daily_error %>%
+           select(lead_mean, mean_mean, mean_error) %>%
+           rename(all_of(colnames_lookup)),
+         add.median = T, title = "Erro da média de leads diários")
 ```
+
+
+Olhando a tabela acima, vemos que, com uma amostra de ``r computed_sample_size`` anúncios, a média das médias amostrais de leads diários é de ``r round(sample_mean_means, 2)`` leads, com um erro médio de ``r round(sample_mean_errors, 3)`` leads.
+
+Ou seja, o valor é bem próximo da média real, no entanto, o erro médio é bem maior ``r max_error``.
+
+
+<div class="meme-block">
+<p style="text-align: center; font-size: 15px; font-weight: bold;">
+Mas pera aí...
+</p>
+
+<p align="center" width="100%">
+![](./images/flork-cafe.jpg){.meme}
+</p>
+</div>
+
+
+```{r}
+grid.arrange(
+  df_leads_daily_error %>%
+    ggplot(aes(data_criado_em, mean_error)) +
+    geom_line(color = "royalblue", linewidth = 0.5) +
+    geom_hline(yintercept = max_error, color = "red", linetype = "dashed", alpha = 0.5) +
+    labs(title = "Erro absoluto da média de leads diários",
+         x = "Dia",
+         y = "Erro abs.") +
+    apply.theme.ts(),
+  df_leads_daily_error %>%
+    ggplot(aes(mean_error)) +
+    coord_cartesian(xlim = c(-0.04, 0.3)) +
+    geom_histogram(bins = 20, color = adjustcolor("royalblue", alpha.f = 0.3), fill = "royalblue", alpha = 0.5) +
+    labs(title = "",
+         x = "",
+         y = "") +
+    theme.base + theme.no_legend + theme.no_axis +
+    theme(panel.grid.minor.y = element_blank()),
+  df_leads_daily_error %>%
+    ggplot(aes(mean_error)) +
+    coord_cartesian(xlim = c(-0.05, 0.3)) +
+    geom_boxplot(color = adjustcolor("royalblue", alpha.f = 0.8), fill = "royalblue", alpha = 0.5) +
+    labs(title = "",
+         x = "",
+         y = "") +
+    theme.base + theme.no_legend + theme.no_axis +
+    theme(axis.text.y = element_blank(),
+          axis.ticks.y = element_blank(),
+          panel.grid.major.y = element_blank(),
+          panel.grid.minor.y = element_blank()),
+  nrow = 3,
+  heights = c(3, 2, 1.5)
+)
+```
+
+Apesar de parecer correto quando analizamos o todo, o gráfico nos mostra que estamos errando além do esperado a maior parte das vezes. Isso indica que a amostra não é suficiente para garantir a precisão desejada.
+
+```{r warning=FALSE, , fig.height = 4}
+df_leads_daily_error %>%
+  ggplot(aes(data_criado_em)) +
+  geom_line(aes(y = mean_mean, size = "Estimado"), color = "blue", alpha = 0.8, linewidth = 0.8) +
+  geom_line(aes(y = lead_mean, size = "Real"), color = "red", linetype = "dashed", linewidth = 0.8, alpha = 0.5) +
+  labs(title = "Média de leads diários",
+       x = "Dia",
+       y = "Leads",
+       size = "") +
+  apply.theme.ts.legend()
+```
+
+
+Mas então, o que pode ter dado errado?
+
+### Causas do erro
+
+- **Variabilidade dos dados**: para calcular o tamanho da amostra utilizamos a média de todas as médias diárias, desta forma, perdemos a informação de que há dias com alta variabilidade.
+- **Independência**: outro fator que influencia nesse erro é a falta de independência entre os dados. Isto é, os dados utilizados formam uma série temporal, o que faz com que qualquer estatística utilizada seja dependente do tempo. Isso torna incorreta a técnica de estimação do tamanho da amostra, pois tem como premissa a independência dos dados.
 
 
 ## Sugestão de tamanho da amostra
 
-Para trabalhos futuros sugerimos que o tamanho da amostra seja de
+Para trabalhos futuros sugerimos que <u>**não**</u> utilize as técnicas de estimação de tamanho de amostra apresentadas neste trabalho. Em vez disso, sugerimos que sejam utilizadas técnicas de amostragem próprias para séries temporais.
+
+<div class="meme-block">
+<p align="center" width="100%">
+![](./images/flork-harmonia.png){.meme}
+</p>
+</div>
