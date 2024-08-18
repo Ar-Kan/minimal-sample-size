@@ -57,16 +57,28 @@ body {
   font-weight: 600;
 }
 
-.meme {
+p {
+  text-align: justify;
+  text-justify: distribute;
+}
+
+.meme-block {
+    padding-top: 12px;
+}
+
+.meme-block .meme p {
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.meme-block .meme-img {
     display: block;
     max-width: 150px;
     max-height: 150px;
     width: auto;
     height: auto;
-}
-
-.meme-block {
-    padding-top: 12px;
 }
 
 .bg-danger:not(#dummy) {
@@ -125,7 +137,7 @@ body {
                 <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">
                   <span class="glyphicon glyphicon-remove"></span>
                 </button>
-                <!-- Navigate between charts -->
+                <!-- Navigation buttons -->
                 <div class="modal-navigate">
                   <button type="button" class="btn btn-default btn-sm" id="chart-zoom-prev">
                     <span class="glyphicon glyphicon-chevron-left"></span>
@@ -147,9 +159,9 @@ body {
     // Add zoom button on top right of each chart
     $('p>img.chart-image').each(function(index) {
       $(this).wrap('<div class="chart-image-wrapper" style="position: relative;"></div>');
-      // Add class couter
-      $(this).addClass(`chart-image-${index}`);
-      // Button
+      // Add data attribute to identify chart index
+      $(this).attr('data-chart-index', index);
+      // Button to zoom in
       $(this).parent().append(
         `<button type="button" id="chart-zoom-button" class="btn btn-default btn-sm" data-chart-index="${index}">
           <span class="glyphicon glyphicon-zoom-in"></span>
@@ -158,7 +170,7 @@ body {
       // Chart click event
       $(this).siblings('#chart-zoom-button').on('click', function() {
         var chartIndex = $(this).data('chart-index');
-        $(`img.chart-image-preview`).attr('src', $(`img.chart-image-${chartIndex}`).attr('src'));
+        $(`img.chart-image-preview`).attr('src', $(`img.chart-image[data-chart-index=${chartIndex}]`).attr('src'));
         $(`img.chart-image-preview`).attr('data-chart-index', chartIndex);
         updateNavButtonsState();
         // Show modal
@@ -188,7 +200,7 @@ body {
       var chartIndex = parseInt($(`img.chart-image-preview`).attr('data-chart-index'));
       if (chartIndex > 0) {
         chartIndex -= 1;
-        $(`img.chart-image-preview`).attr('src', $(`img.chart-image-${chartIndex}`).attr('src'));
+        $(`img.chart-image-preview`).attr('src', $(`img.chart-image[data-chart-index=${chartIndex}]`).attr('src'));
         $(`img.chart-image-preview`).attr('data-chart-index', chartIndex);
         updateNavButtonsState();
       }
@@ -197,7 +209,7 @@ body {
       var chartIndex = parseInt($(`img.chart-image-preview`).attr('data-chart-index'));
       if (chartIndex < $('img.chart-image').length - 1) {
         chartIndex += 1;
-        $(`img.chart-image-preview`).attr('src', $(`img.chart-image-${chartIndex}`).attr('src'));
+        $(`img.chart-image-preview`).attr('src', $(`img.chart-image[data-chart-index=${chartIndex}]`).attr('src'));
         $(`img.chart-image-preview`).attr('data-chart-index', chartIndex);
         updateNavButtonsState();
       }
@@ -225,7 +237,8 @@ library(tidyr)
 library(readxl)
 library(knitr)
 library(ggplot2)
-library(ggh4x)
+library(scales)
+library(ggh4x) # used to plot differece between two plots
 library(reshape2)
 library(gridExtra)
 library(vtable)
@@ -398,9 +411,9 @@ grid.arrange(
 Será que é só isso mesmo?
 </p>
 
-<p align="center" width="100%">
-![](./images/flork-pensando.jpg){.meme}
-</p>
+<div class="meme">
+![](./images/flork-pensando.jpg){.meme-img}
+</div>
 </div>
 
 Claro que não! A média diária de leads por anúncio é uma estimativa incorreta, pois não considera a quantidade de anúncios ativos em cada dia, e acaba gerando um viés.
@@ -471,9 +484,9 @@ grid.arrange(
 Mas não está totalmente correto...
 </p>
 
-<p align="center" width="100%">
-![](./images/flork-exercer-a-calma.jpg){.meme}
-</p>
+<div class="meme">
+![](./images/flork-exercer-a-calma.jpg){.meme-img}
+</div>
 </div>
 
 Lembrando que esta é uma aproximação e não corresponde totalmente ao que de fato aconteceu, para computar a verdadeira média, precisaríamos da listagem de todos os anúncios ativos no dia.
@@ -572,10 +585,14 @@ Lembrando que queremos estimar a média de leads diários a partir de uma amostr
 
 Mas qual parâmetro devemos usar para o desvio padrão? O desvio padrão dos leads diários ou o desvio padrão das médias diárias?
 
-- **Desvio padrão dos leads diários**: indica o quanto os leads variam de um dia para o outro.
+- **Desvio padrão dos leads diários**: indica o quanto os leads variam durante todo o período.
 - **Desvio padrão das médias diárias**: indica o quanto as médias diárias variam de um dia para o outro.
 
 O nosso objetivo é amostrar anúncios ativos no dia, e não todos, desta forma, escolhemos o desvio padrão das médias diárias.
+
+<p class="bg-warning" style="padding: 10px;">
+__Nota:__ neste caso não há resposta certa, haja visto que estamos trabalhando com uma dimensão a mais, o tempo. Desta forma, se escolhermos o desvio padrão dos leads diários, iremos ignorar que existem dias. Por outro lado, se escolhermos o desvio padrão das médias diárias, estaremos ignorando que existem anúncios.
+</p>
 
 
 ```{r}
@@ -598,10 +615,10 @@ __Ta-dá!__ Para obter uma margem de erro de ``r max_error`` com ``r confidence*
 </p>
 
 
-<div>
-<p align="center" width="100%">
-![](./images/flork-orgulhoso.png){.meme}
-</p>
+<div class="meme-block">
+<div class="meme">
+![](./images/flork-orgulhoso.png){.meme-img}
+</div>
 </div>
 
 ### Análise do erro
@@ -658,9 +675,9 @@ Ou seja, o valor é bem próximo da média real, no entanto, o erro médio é be
 Mas pera aí...
 </p>
 
-<p align="center" width="100%">
-![](./images/flork-cafe.jpg){.meme}
-</p>
+<div class="meme">
+![](./images/flork-cafe.jpg){.meme-img}
+</div>
 </div>
 
 Ao analisarmos as estimativas globalmente, ficamos com a impressão de que o tamanho da amostra é suficiente. Contudo, nosso objetivo final é estimar a média diária de leads. Desta forma, precisamos analisar o erro ao nível diário.
@@ -743,6 +760,9 @@ grid.arrange(
     ggplot(aes(data_criado_em, mean_error)) +
     geom_line(color = "royalblue", linewidth = 0.5) +
     geom_hline(yintercept = max_error, color = "red", linetype = "dashed", alpha = 0.5) +
+    annotate("text", x = as.Date("2024-06-20"), y = max_error,
+             label = paste('italic("erro máximo ") (', max_error, ')'), color = "red", parse = T,
+             vjust = 1.2, size = 3) +
     labs(title = "Erro absoluto da média de leads diários",
          x = "Dia",
          y = "Erro abs.") +
@@ -751,6 +771,7 @@ grid.arrange(
     ggplot(aes(mean_error)) +
     coord_cartesian(xlim = c(-0.04, 0.3)) +
     geom_histogram(bins = 20, color = adjustcolor("royalblue", alpha.f = 0.3), fill = "royalblue", alpha = 0.5) +
+    geom_vline(xintercept = max_error, color = "red", linetype = "dashed", alpha = 0.5) +
     labs(title = "",
          x = "",
          y = "") +
@@ -760,6 +781,7 @@ grid.arrange(
     ggplot(aes(mean_error)) +
     coord_cartesian(xlim = c(-0.05, 0.3)) +
     geom_boxplot(color = adjustcolor("royalblue", alpha.f = 0.8), fill = "royalblue", alpha = 0.5) +
+    geom_vline(xintercept = max_error, color = "red", linetype = "dashed", alpha = 0.5) +
     labs(title = "",
          x = "",
          y = "") +
@@ -773,7 +795,11 @@ grid.arrange(
 )
 ```
 
-Apesar de dar a impressão de estar correto, o gráfico nos mostra que estamos errando além do esperado a maioria das vezes. Isso indica que a amostra não é suficiente para garantir a precisão desejada. Consequentemente, não podemos ter confiança que teremos uma estimativa precisa da média diária de leads.
+Apesar de dar a impressão de estar correto, o gráfico nos mostra que estamos errando além do esperado a maioria das vezes. Isso indica que a amostra não é suficiente para garantir a precisão desejada.
+
+Outro fator que indica a má qualidade das inferências realizadas é que o erro segue o mesmo padrão que a série temporal. Isso indica que o erro não é aleatório.
+
+Consequentemente, não podemos ter confiança que teremos uma estimativa precisa da média diária de leads.
 
 
 Mas, o que pode ter dado errado então?
@@ -789,7 +815,7 @@ Mas, o que pode ter dado errado então?
 Para trabalhos futuros sugerimos que <u>**não**</u> utilize as técnicas de estimação de tamanho de amostra apresentadas neste trabalho. Em vez disso, sugerimos que sejam utilizadas técnicas de amostragem próprias para séries temporais.
 
 <div class="meme-block">
-<p align="center" width="100%">
-![](./images/flork-harmonia.png){.meme}
-</p>
+<div class="meme">
+![](./images/flork-harmonia.png){.meme-img}
+</div>
 </div>
