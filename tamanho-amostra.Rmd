@@ -51,6 +51,12 @@ body {
   font-size: 12px;
 }
 
+.table caption {
+  font-size: 13px;
+  color: gray;
+  font-weight: 600;
+}
+
 .meme {
     display: block;
     max-width: 150px;
@@ -82,21 +88,55 @@ body {
   height: 100%;
   max-height: 90vh;
 }
+
+.chart-image-wrapper #chart-zoom-button {
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
+.modal-actions {
+  position: absolute;
+  display: flex;
+  justify-content: space-between;
+  flex-direction: row-reverse;
+  width: calc(100vw - 50px);
+}
+
+.modal-actions button {
+  opacity: 0.8;
+}
+
+.modal-actions button:hover:not(:disabled) {
+  opacity: 1;
+}
 </style>
 
 <script type="text/javascript">
   $(document).ready(function() {
     $('body').prepend(
-      <!-- Modal component -->
+      // Modal component
       `<div class="modal fade" id="chart-zoom-modal" tabindex="-1" role="dialog" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
           <div class="modal-content">
             <div class="modal-body">
-                <button type="button" class="close" data-dismiss="modal">
-                  <span aria-hidden="true">&times;</span>
-                  <span class="sr-only">Close</span>
-              </button>
-                <div class="chart-image-preview-wrapper">
+              <div class="modal-actions">
+                <!-- Close button -->
+                <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">
+                  <span class="glyphicon glyphicon-remove"></span>
+                </button>
+                <!-- Navigate between charts -->
+                <div class="modal-navigate">
+                  <button type="button" class="btn btn-default btn-sm" id="chart-zoom-prev">
+                    <span class="glyphicon glyphicon-chevron-left"></span>
+                  </button>
+                  <button type="button" class="btn btn-default btn-sm" id="chart-zoom-next">
+                    <span class="glyphicon glyphicon-chevron-right"></span>
+                  </button>
+                </div>
+              </div>
+              <!-- Chart image -->
+              <div class="chart-image-preview-wrapper">
                 <img src="" class="chart-image-preview" keepaspectratio="true">
               </div>
             </div>
@@ -104,21 +144,78 @@ body {
         </div>
       </div>`
     );
-    <!-- Add zoom button on top right of each chart -->
-    $('p>img.chart-image').each(function() {
+    // Add zoom button on top right of each chart
+    $('p>img.chart-image').each(function(index) {
       $(this).wrap('<div class="chart-image-wrapper" style="position: relative;"></div>');
+      // Add class couter
+      $(this).addClass(`chart-image-${index}`);
+      // Button
       $(this).parent().append(
-        `<button type="button" class="btn btn-default btn-sm chart-zoom-button" style="position: absolute; top: 0; right: 0;">
+        `<button type="button" id="chart-zoom-button" class="btn btn-default btn-sm" data-chart-index="${index}">
           <span class="glyphicon glyphicon-zoom-in"></span>
         </button>`
       );
+      // Chart click event
+      $(this).siblings('#chart-zoom-button').on('click', function() {
+        var chartIndex = $(this).data('chart-index');
+        $(`img.chart-image-preview`).attr('src', $(`img.chart-image-${chartIndex}`).attr('src'));
+        $(`img.chart-image-preview`).attr('data-chart-index', chartIndex);
+        updateNavButtonsState();
+        // Show modal
+        $('#chart-zoom-modal').modal('show');
+      });
     });
-    <!-- Click event  -->
-    $('button.chart-zoom-button').on('click', function() {
-      var chartImage = $(this).siblings('img.chart-image');
-      $('#chart-zoom-modal .chart-image-preview').attr('src', chartImage.attr('src'));
-      $('#chart-zoom-modal').modal('show');
+    // Modal navigate buttons
+    $('#chart-zoom-prev').on('click', function() {
+      showPrevChart();
     });
+    $('#chart-zoom-next').on('click', function() {
+      showNextChart();
+    });
+    // Modal arrow keys to navigate charts
+    $(document).keydown(function(e) {
+      if ($('#chart-zoom-modal').is(':visible')) {
+        if (e.keyCode == 37) {
+          showPrevChart();
+          e.preventDefault();
+        } else if (e.keyCode == 39) {
+          showNextChart();
+          e.preventDefault();
+        }
+      }
+    });
+    function showPrevChart() {
+      var chartIndex = parseInt($(`img.chart-image-preview`).attr('data-chart-index'));
+      if (chartIndex > 0) {
+        chartIndex -= 1;
+        $(`img.chart-image-preview`).attr('src', $(`img.chart-image-${chartIndex}`).attr('src'));
+        $(`img.chart-image-preview`).attr('data-chart-index', chartIndex);
+        updateNavButtonsState();
+      }
+    }
+    function showNextChart() {
+      var chartIndex = parseInt($(`img.chart-image-preview`).attr('data-chart-index'));
+      if (chartIndex < $('img.chart-image').length - 1) {
+        chartIndex += 1;
+        $(`img.chart-image-preview`).attr('src', $(`img.chart-image-${chartIndex}`).attr('src'));
+        $(`img.chart-image-preview`).attr('data-chart-index', chartIndex);
+        updateNavButtonsState();
+      }
+    }
+    // Disable nav buttons if at the end
+    function updateNavButtonsState() {
+      var chartIndex = parseInt($(`img.chart-image-preview`).attr('data-chart-index'));
+      if (chartIndex == 0) {
+        $('#chart-zoom-prev').prop('disabled', true);
+      } else {
+        $('#chart-zoom-prev').prop('disabled', false);
+      }
+      if (chartIndex == $('img.chart-image').length - 1) {
+        $('#chart-zoom-next').prop('disabled', true);
+      } else {
+        $('#chart-zoom-next').prop('disabled', false);
+      }
+    }
   });
 </script>
 
@@ -197,7 +294,7 @@ apply.theme.ts <- function() {
 
 ## Objetivo
 
-Estimar a quantidade média de leads diários, com 80% de confiança, por anunciante, de anúncios de vendas de imóveis na cidade de Florianópolis (SC).
+Estimar a quantidade média de leads diários, com 80% de confiança, por anunciante, de anúncios de vendas de imóveis na cidade de Florianópolis–SC.
 
 Com um erro máximo de 0.05, usando Amostragem Aleatório Simples sem Reposição (AASs).
 
@@ -211,8 +308,8 @@ Almeja-se, a partir de uma lista de anúncios, realizar uma busca diária de an�
 
 Portanto:
 
-- **População alvo:** anúncios ativos em um dado dia, na cidade de Florianópolis (SC).
-- **População de pesquisa:** anúncios ativos da cidade de Florianópolis (SC) entre Janeiro e Julho de 2024.
+- **População alvo:** anúncios ativos em um dado dia, na cidade de Florianópolis–SC.
+- **População de pesquisa:** anúncios ativos da cidade de Florianópolis–SC entre Janeiro e Julho de 2024.
 - **Unidade elementar:** anúncio de venda de imóvel ativo no dia em questão.
 - **Característica de interesse:** média diária de leads por anúncio.
 - **Estimador:** média amostral.
@@ -247,7 +344,7 @@ O banco de dados é composto por 3 colunas:
 ```{r echo=TRUE}
 df_leads <- read_excel("dataset/leads.xlsx", col_types = c("numeric", "date", "text"))
 df_leads$data_criado_em <- as.Date(df_leads$data_criado_em)
-kable(head(df_leads))
+kable(head(df_leads), caption = "Amostra dos dados")
 ```
 
 #### Leads diários
@@ -258,7 +355,7 @@ df_leads %>%
   summarise(leads = n()) %>%
   ggplot(aes(data_criado_em, leads)) +
   geom_line(color = "royalblue", linewidth = 0.5) +
-  labs(title = "Leads diários",
+  labs(title = "Total de leads por dia",
        x = "Dia",
        y = "Leads") +
   apply.theme.ts()
@@ -283,13 +380,13 @@ grid.arrange(
     geom_line(color = "royalblue", linewidth = 0.5) +
     labs(title = "Média de leads por dia",
          x = "Dia",
-         y = "Média de leads") +
+         y = "Média") +
     apply.theme.ts(),
   df_leads_incorrect_mean %>%
     ggplot(aes(mean)) +
     geom_histogram(bins = 30, color = "royalblue", fill = "royalblue", alpha = 0.5) +
     labs(title = "",
-         x = "Média de leads",
+         x = "",
          y = "") +
     theme.base + theme.no_legend,
   nrow = 2
@@ -338,7 +435,7 @@ df_leads_complete <- df_leads %>%
   # Unnests the data
   unnest(data)
 
-kable(head(df_leads_complete))
+kable(head(df_leads_complete), caption = "Amostra dos dados completados com zero")
 ```
 
 A partir desta correção, temos as seguintes médias diárias.
@@ -356,13 +453,13 @@ grid.arrange(
     geom_line(color = "royalblue", linewidth = 0.5) +
     labs(title = "Média de leads por dia",
          x = "Dia",
-         y = "Média de leads") +
+         y = "Média") +
     apply.theme.ts(),
   df_leads_daily %>%
     ggplot(aes(mean)) +
     geom_histogram(bins = 20, color = "royalblue", fill = "royalblue", alpha = 0.5) +
     labs(title = "",
-         x = "Média de leads",
+         x = "",
          y = "") +
     theme.base + theme.no_legend,
   nrow = 2
@@ -395,10 +492,7 @@ df_leads_daily_filtered <- df_leads_complete_filtered %>%
   summarise(mean = mean(leads),
             total_leads = sum(leads),
             active_listings = n_distinct(id_anuncio))
-```
 
-
-```{r}
 sumtable(df_leads_complete_filtered, add.median = T, title = "Registros corrigidos")
 ```
 
@@ -521,6 +615,7 @@ sample_repetitions <- 20
 df_leads_daily_error <- df_leads_complete_filtered %>%
   group_by(data_criado_em) %>%
   summarise(lead_mean = mean(leads),
+            lead_sd = sd(leads),
             leads = list(leads),
             active_listings = n_distinct(id_anuncio)) %>%
   rowwise() %>%
@@ -531,6 +626,7 @@ df_leads_daily_error <- df_leads_complete_filtered %>%
     min_mean = min(samples_mean),
     max_mean = max(samples_mean),
     mean_mean = mean(samples_mean),
+    sd_mean = sd(samples_mean),
     min_error = min(samples_error),
     max_error = max(samples_error),
     mean_error = mean(samples_error)
@@ -541,7 +637,7 @@ sample_mean_means <- mean(df_leads_daily_error$mean_mean)
 sample_mean_errors <- mean(df_leads_daily_error$mean_error)
 
 colnames_lookup <- c(
-  "Média real" = "lead_mean",
+  "Média das médias reais" = "lead_mean",
   "Média das médias amostrais" = "mean_mean",
   "Erro médio" = "mean_error"
 )
@@ -566,6 +662,79 @@ Mas pera aí...
 ![](./images/flork-cafe.jpg){.meme}
 </p>
 </div>
+
+Ao analisarmos as estimativas globalmente, ficamos com a impressão de que o tamanho da amostra é suficiente. Contudo, nosso objetivo final é estimar a média diária de leads. Desta forma, precisamos analisar o erro ao nível diário.
+
+Vamos, portanto, analisar o intervalo de confiança da estimativa.
+
+```{r, fig.height = 4, fig.width = 12}
+z_quartil <- z_quartil
+
+df_leads_daily_error %>%
+  mutate(
+    error = z_quartil * lead_sd / sqrt(active_listings)
+  ) %>%
+  ggplot(aes(data_criado_em)) +
+  geom_line(aes(y = mean_mean, color = "Estimado")) +
+  geom_line(aes(y = lead_mean, color = "Real"), linetype = "dashed") +
+  geom_ribbon(aes(ymin = mean_mean - error, ymax = mean_mean + error, linetype = 'IC 80%'),
+              fill = "darkgreen", alpha = 0.1, color = "darkgreen") +
+  labs(title = "Intervalo de confiança da estimativa",
+       x = "Dia",
+       y = "Leads",
+       linetype = NULL) +
+  scale_color_manual(name = NULL,
+                     values = c("Estimado" = "blue", "Real" = "red")) +
+  apply.theme.ts.legend() +
+  theme(legend.position = "bottom",
+        axis.text = element_text(size = 10),
+        plot.title = element_text(size = 12),
+        axis.title = element_text(size = 10),
+        legend.title = element_text(size = 10))
+```
+
+E, analisar, também, o erro ao nível diário.
+
+```{r, fig.height = 4, fig.width = 12}
+df_leads_daily_error %>%
+  ggplot(aes(data_criado_em)) +
+  stat_difference(aes(ymin = lead_mean, ymax = mean_mean)) +
+  scale_fill_discrete(name = "Diferença entre estimado e real") +
+  geom_line(aes(y = mean_mean), alpha = 0.5, linewidth = 0.5) +
+  geom_line(aes(y = lead_mean), alpha = 0.5, linewidth = 0.5) +
+  labs(title = "Diferença entre estimado e real",
+       x = "Dia",
+       y = "Leads") +
+  apply.theme.ts.legend() +
+  theme(legend.position = "bottom",
+        axis.text = element_text(size = 10),
+        plot.title = element_text(size = 12),
+        axis.title = element_text(size = 10),
+        legend.title = element_text(size = 10))
+```
+
+```{r}
+# percentage of days where the confidence interval contains the real mean
+df_confidence_interval <- df_leads_daily_error %>%
+  mutate(
+    error = z_quartil * lead_sd / sqrt(active_listings),
+    ci_contains_mean = ifelse(lead_mean >= mean_mean - error & lead_mean <= mean_mean + error, "yes", "no")
+  ) %>%
+  group_by(ci_contains_mean) %>%
+  summarise(days = n()) %>%
+  mutate(percentage = round(days / sum(days) * 100, 2))
+
+percentage_within_ci <- df_confidence_interval %>%
+  filter(ci_contains_mean == "yes") %>%
+  pull(percentage)
+
+kable(df_confidence_interval, caption = "Porcentagem de dias onde o intervalo de confiança contém a média real")
+```
+
+
+Observa-se que, em média, a amostra segue o mesmo padrão da média real. Além disso, o intervalo de confiança de 80% da estimativa contém a média real em ``r percentage_within_ci`%` dos dias.
+
+Ou seja, analisando até aqui, fica fácil dizer que a amostra parece ser suficiente para estimar a média diária de leads. Vamos então analisar o erro diário absoluto.
 
 
 ```{r}
@@ -604,33 +773,15 @@ grid.arrange(
 )
 ```
 
-Apesar de parecer "correto" quando analisamos o todo, o gráfico nos mostra que estamos errando além do esperado a maioria das vezes. Isso indica que a amostra não é suficiente para garantir a precisão desejada.
-
-```{r warning=FALSE, fig.height = 4, fig.width = 12}
-df_leads_daily_error %>%
-  ggplot(aes(data_criado_em)) +
-  stat_difference(aes(ymin = lead_mean, ymax = mean_mean)) +
-  scale_fill_discrete(name = "Diferença entre estimado e real") +
-  geom_line(aes(y = mean_mean), alpha = 0.5, linewidth = 0.5) +
-  geom_line(aes(y = lead_mean), alpha = 0.5, linewidth = 0.5) +
-  labs(title = "Média de leads diários",
-       x = "Dia",
-       y = "Leads") +
-  apply.theme.ts.legend() +
-  theme(legend.position = "bottom",
-        axis.text = element_text(size = 10),
-        plot.title = element_text(size = 12),
-        axis.title = element_text(size = 10),
-        legend.title = element_text(size = 10))
-```
+Apesar de dar a impressão de estar correto, o gráfico nos mostra que estamos errando além do esperado a maioria das vezes. Isso indica que a amostra não é suficiente para garantir a precisão desejada. Consequentemente, não podemos ter confiança que teremos uma estimativa precisa da média diária de leads.
 
 
 Mas, o que pode ter dado errado então?
 
 ### Causas do erro
 
-- **Variabilidade dos dados**: para calcular o tamanho da amostra utilizamos a média de todas as médias diárias, desta forma, perdemos a informação de que há dias com alta variabilidade.
-- **Independência**: outro fator que exerce influência sobre esse erro é a falta de independência entre os dados. Isto é, os dados utilizados formam uma série temporal, o que faz com que qualquer estatística utilizada seja dependente do tempo. Isso torna incorreta a técnica de estimação do tamanho da amostra, pois tem como premissa a independência dos dados.
+- **Variabilidade dos dados**: para calcular o tamanho da amostra utilizamos a média de todas as médias diárias, desta forma, perdemos a informação de que há dias com alta variabilidade relativa. O ideal, certamente, seria calcular o tamanho da amostra para cada dia, no entanto, isso faria com que o resultado fosse impraticável. Pois necessitaríamos da média e desvio padrão de cada um desses dias.
+- **Independência**: na verdade, tudo realizado até aqui foi baseado na premissa de que os dados são independentes. No entanto, estamos lidando com uma série temporal, e, portanto, os dados são dependentes do tempo. Isso, por si só, já invalida a técnica de estimação do tamanho da amostra utilizada.
 
 
 ## Sugestão de tamanho da amostra
