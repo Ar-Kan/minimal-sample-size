@@ -819,7 +819,7 @@ No entanto, por questões de completude, caso não houvesse teporalidade nos dad
 
 ```{r}
 sample_size_ <- presize::prec_mean(mean = 0.12, sd = 0.0689*2, conf.width = 0.05*2, conf.level = 0.8)
-paste("O tamanho da amostra necessário é de", ceiling(sample_size_$n), "leads")
+paste("O tamanho da amostra necessário é de", ceiling(sample_size_$n), "anúncios")
 ```
 
 
