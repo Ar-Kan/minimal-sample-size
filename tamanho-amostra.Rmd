@@ -243,6 +243,7 @@ library(reshape2)
 library(gridExtra)
 library(vtable)
 library(purrr)
+library(presize)
 
 knitr::opts_chunk$set(
   out.height = "\\textheight",
@@ -813,6 +814,14 @@ Mas, o que pode ter dado errado então?
 ## Sugestão de tamanho da amostra
 
 Para trabalhos futuros sugerimos que <u>**não**</u> utilize as técnicas de estimação de tamanho de amostra apresentadas neste trabalho. Em vez disso, sugerimos que sejam utilizadas técnicas de amostragem próprias para séries temporais.
+
+No entanto, por questões de completude, caso não houvesse teporalidade nos dados e presumindo independência, o tamanho da amostra necessário para estimar a média diária de leads com erro máximo de 0.05 e confiança de 80% pode ser calculada por intermédio do pacote `presize`:
+
+```{r}
+sample_size_ <- presize::prec_mean(mean = 0.12, sd = 0.0689*2, conf.width = 0.05*2, conf.level = 0.8)
+paste("O tamanho da amostra necessário é de", ceiling(sample_size_$n), "leads")
+```
+
 
 <div class="meme-block">
 <div class="meme">
